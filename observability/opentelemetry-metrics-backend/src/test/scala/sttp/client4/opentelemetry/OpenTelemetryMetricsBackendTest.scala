@@ -166,7 +166,7 @@ class OpenTelemetryMetricsBackendTest extends AnyFlatSpec with Matchers with Opt
     getHistogramValue(reader, OpenTelemetryMetricsBackend.DefaultResponseSizeHistogramName).value.getSum shouldBe 50
   }
 
-  it should "use histogram for request latencies" in {
+  it should "use histogram for request latencies and validate attributes" in {
     // given
     val response = ResponseStub("Ok", StatusCode.Ok, "Ok", Seq(Header.contentLength(10)))
     val backendStub = SyncBackendStub.whenAnyRequest.thenRespond(response)
@@ -177,7 +177,16 @@ class OpenTelemetryMetricsBackendTest extends AnyFlatSpec with Matchers with Opt
     (0 until 5).foreach(_ => basicRequest.get(uri"http://127.0.0.1/foo").send(backend))
 
     // then
-    getHistogramValue(reader, OpenTelemetryMetricsBackend.DefaultLatencyHistogramName).map(_.getSum) should not be empty
+    val histogram = getHistogramValue(reader, OpenTelemetryMetricsBackend.DefaultLatencyHistogramName).map(
+      _.getSum
+    ) should not be empty
+
+    // Validate required attributes
+    val attributes = histogram.getAttributes.asScala
+    attributes.get("http.request.method") shouldBe Some("GET")
+    attributes.get("server.address") shouldBe Some("127.0.0.1")
+    attributes.get("server.port") shouldBe Some("80")
+    attributes.get("http.response.status_code") shouldBe Some("200")
   }
 
   it should "use error counter when http error is thrown" in {
@@ -238,6 +247,19 @@ class OpenTelemetryMetricsBackendTest extends AnyFlatSpec with Matchers with Opt
     getMetricValue(reader, OpenTelemetryMetricsBackend.DefaultErrorCounterName) shouldBe None
   }
 
+  it should "validate http.client.request.duration semantic conventions" in {
+    // given
+    val reader = InMemoryMetricReader.create()
+    val backend = OpenTelemetryMetricsBackend(stubAlwaysOk, spawnNewOpenTelemetry(reader))
+
+    // when
+    basicRequest.get(uri"http://127.0.0.1/foo").send(backend)
+
+    // then
+    val metrics = reader.collectAllMetrics().asScala.toList
+    specTest(metrics, HttpMetrics.ClientRequestDuration)
+  }
+
   private[this] def getMetricValue(reader: InMemoryMetricReader, name: String): Option[Long] =
     reader
       .collectAllMetrics()
@@ -260,5 +282,33 @@ class OpenTelemetryMetricsBackendTest extends AnyFlatSpec with Matchers with Opt
       .asScala
       .find(_.getName.equals(name))
       .head
+
+  private[this] def specTest(metrics: List[MetricData], spec: MetricSpec): Unit = {
+    val metric = metrics.find(_.getName == spec.name)
+    assert(
+      metric.isDefined,
+      s"${spec.name} metric is missing. Available [${metrics.map(_.getName).mkString(", ")}]"
+    )
+
+    val clue = s"[${spec.name}] has a mismatched property"
+
+    metric.foreach { md =>
+      assert(md.getName == spec.name, clue)
+      assert(md.getDescription == spec.description, clue)
+      assert(md.getUnit == spec.unit, clue)
+
+      val requiredAttributes = spec.attributeSpecs
+        .filter(_.requirement.level == Requirement.Level.Required)
+        .map(_.key)
+        .toSet
+
+      val actualAttributes = md.getPoints.asScala
+        .flatMap(_.getAttributes.asScala.map(_.getKey))
+        .filter(requiredAttributes.contains)
+        .toSet
+
+      assert(actualAttributes == requiredAttributes, clue)
+    }
+  }
 
 }
