@@ -10,6 +10,8 @@ import org.scalatest.matchers.should.Matchers
 import sttp.client4.testing.{ResponseStub, SyncBackendStub}
 import sttp.client4.{asString, basicRequest, DeserializationException, SttpClientException, UriContext}
 import sttp.model.{Header, StatusCode}
+import org.typelevel.otel4s.metrics.MetricSpec
+import org.typelevel.otel4s.semconv.metrics.HttpMetrics
 
 import scala.collection.JavaConverters._
 import scala.collection.immutable._
@@ -177,11 +179,7 @@ class OpenTelemetryMetricsBackendTest extends AnyFlatSpec with Matchers with Opt
     (0 until 5).foreach(_ => basicRequest.get(uri"http://127.0.0.1/foo").send(backend))
 
     // then
-    val histogram = getHistogramValue(reader, OpenTelemetryMetricsBackend.DefaultLatencyHistogramName).map(
-      _.getSum
-    ) should not be empty
-
-    // Validate required attributes
+    val histogram = getHistogramValue(reader, OpenTelemetryMetricsBackend.DefaultLatencyHistogramName).value
     val attributes = histogram.getAttributes.asScala
     attributes.get("http.request.method") shouldBe Some("GET")
     attributes.get("server.address") shouldBe Some("127.0.0.1")
@@ -302,12 +300,12 @@ class OpenTelemetryMetricsBackendTest extends AnyFlatSpec with Matchers with Opt
         .map(_.key)
         .toSet
 
-      val actualAttributes = md.getPoints.asScala
-        .flatMap(_.getAttributes.asScala.map(_.getKey))
-        .filter(requiredAttributes.contains)
-        .toSet
+    val actualAttributes = md.getHistogramData.getPoints.asScala
+      .flatMap(_.getAttributes.asScala.map(_.getKey))
+      .filter(requiredAttributes.contains)
+      .toSet
 
-      assert(actualAttributes == requiredAttributes, clue)
+    assert(actualAttributes == requiredAttributes, clue)
     }
   }
 
