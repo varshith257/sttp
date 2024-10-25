@@ -109,6 +109,7 @@ private class OpenTelemetryMetricsListener(
 
   override def beforeRequest(request: GenericRequest[_, _]): Option[Long] = {
     val attributes = createRequestAttributes(request)
+    attributes.put("http.request.method", request.method.method)
     updateInProgressCounter(request, 1, attributes)
     recordHistogram(requestToSizeHistogramMapper(request), request.contentLength, attributes)
     requestToLatencyHistogramMapper(request).map(_ => clock.millis())
