@@ -179,11 +179,10 @@ class OpenTelemetryMetricsBackendTest extends AnyFlatSpec with Matchers with Opt
     // then
     val histogram = getHistogramValue(reader, OpenTelemetryMetricsBackend.DefaultLatencyHistogramName).value
     histogram.getAttributes.forEach { (key, value) =>
-      if (key == "http.request.method") value shouldBe "GET"
-      if (key == "server.address") value shouldBe "127.0.0.1"
-      if (key == "http.response.status_code") value shouldBe "200"
+      if (key == AttributeKey.stringKey("http.request.method")) value shouldBe "GET"
+      if (key == AttributeKey.stringKey("server.address")) value shouldBe "127.0.0.1"
+      if (key == AttributeKey.longKey("http.response.status_code")) value shouldBe 200L
     }
-
   }
 
   it should "use error counter when http error is thrown" in {
@@ -254,7 +253,8 @@ class OpenTelemetryMetricsBackendTest extends AnyFlatSpec with Matchers with Opt
 
     // then
     val metrics = reader.collectAllMetrics().asScala.toList
-    specTest(metrics, HttpMetrics.ClientRequestDuration)
+    val expectedMetricName = "http.client.request.duration"
+    specTest(metrics, expectedMetricName)
   }
 
   private[this] def getMetricValue(reader: InMemoryMetricReader, name: String): Option[Long] =
@@ -296,9 +296,9 @@ class OpenTelemetryMetricsBackendTest extends AnyFlatSpec with Matchers with Opt
 
       md.getHistogramData.getPoints.forEach { point =>
         val attributes = point.getAttributes
-        assert(attributes.get("http.request.method") == "GET")
-        assert(attributes.get("server.address") == "127.0.0.1")
-        assert(attributes.get("http.response.status_code") == "200")
+        assert(attributes.get(AttributeKey.stringKey("http.request.method")) == "GET")
+        assert(attributes.get(AttributeKey.stringKey("server.address")) == "127.0.0.1")
+        assert(attributes.get(AttributeKey.longKey("http.response.status_code")) == 200L)
       }
     }
   }
