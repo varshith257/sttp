@@ -218,15 +218,15 @@ private class OpenTelemetryMetricsListener(
   private def createRequestAttributes(request: GenericRequest[_, _]): Attributes =
     Attributes
       .builder()
-      .put("http.request.method", request.method.method)
-      .put("server.address", request.uri.host.getOrElse("unknown"))
-      .put("server.port", request.uri.port.getOrElse(80).toString)
+      .put(AttributeKey.stringKey("http.request.method"), request.method.method)
+      .put(AttributeKey.stringKey("server.address"), request.uri.host.getOrElse("unknown"))
+      .put(AttributeKey.longKey("server.port"), request.uri.port.getOrElse(80).toLong)
       .build()
 
   private def createResponseAttributes(response: Response[_]): Attributes =
     Attributes
       .builder()
-      .put("http.response.status_code", response.code.code.toString)
+      .put(AttributeKey.longKey("http.response.status_code"), response.code.code.toLong)
       .build()
 
   private def createErrorAttributes(e: Throwable): Attributes = {
