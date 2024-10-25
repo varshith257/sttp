@@ -125,22 +125,22 @@ private class OpenTelemetryMetricsListener(
     val responseAttributes = createResponseAttributes(response)
     // println(s"INFO: Request successful: ${request.uri}, status: ${response.code.code}")
 
+    val combinedAttributes = requestAttributes.toBuilder().putAll(responseAttributes).build()
+
     if (response.isSuccess) {
-      incrementCounter(responseToSuccessCounterMapper(response), requestAttributes)
+      incrementCounter(responseToSuccessCounterMapper(response), combinedAttributes)
     } else {
-      incrementCounter(requestToErrorCounterMapper(response), responseAttributes)
+      incrementCounter(requestToErrorCounterMapper(response), combinedAttributes)
     }
 
-    recordHistogram(responseToSizeHistogramMapper(response), response.contentLength, responseAttributes)
-    recordHistogram(requestToLatencyHistogramMapper(request), tag.map(clock.millis() - _), responseAttributes)
+    recordHistogram(responseToSizeHistogramMapper(response), response.contentLength, combinedAttributes)
+    recordHistogram(requestToLatencyHistogramMapper(request), tag.map(clock.millis() - _), combinedAttributes)
     updateInProgressCounter(request, -1, requestAttributes)
   }
 
   override def requestException(request: GenericRequest[_, _], tag: Option[Long], e: Exception): Unit = {
     val requestAttributes = createRequestAttributes(request)
     val errorAttributes = createErrorAttributes(e)
-
-    // println(s"ERROR: Request failed: ${request.uri}, error: ${e.getMessage}")
 
     HttpError.find(e) match {
       case Some(HttpError(body, statusCode)) =>
