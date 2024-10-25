@@ -297,7 +297,7 @@ class OpenTelemetryMetricsBackendTest extends AnyFlatSpec with Matchers with Opt
 
     metric.foreach { md =>
       assert(md.getName == expectedMetricName, clue)
-      assert(md.getUnit == "Expected unit", clue)
+      assert(md.getUnit == "ms", clue)
 
       md.getHistogramData.getPoints.forEach { point =>
         val attributes = point.getAttributes
