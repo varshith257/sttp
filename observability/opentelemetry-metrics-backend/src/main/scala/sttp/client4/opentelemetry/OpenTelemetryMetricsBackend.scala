@@ -10,6 +10,7 @@ import sttp.shared.Identity
 
 import java.time.Clock
 import java.util.concurrent.ConcurrentHashMap
+import org.slf4j.LoggerFactory
 
 object OpenTelemetryMetricsBackend {
   /*
@@ -106,18 +107,25 @@ private class OpenTelemetryMetricsListener(
   private val counters = new ConcurrentHashMap[String, LongCounter]
   private val histograms = new ConcurrentHashMap[String, DoubleHistogram]()
   private val upAndDownCounter = new ConcurrentHashMap[String, LongUpDownCounter]()
+  private val logger = LoggerFactory.getLogger(getClass)
 
   override def beforeRequest(request: GenericRequest[_, _]): Option[Long] = {
     val attributes = createRequestAttributes(request)
-    attributes.put("http.request.method", request.method.method)
+    logger.info(s"Before request: ${request.uri}, method: ${request.method.method}, attributes: $attributes")
+
     updateInProgressCounter(request, 1, attributes)
     recordHistogram(requestToSizeHistogramMapper(request), request.contentLength, attributes)
-    requestToLatencyHistogramMapper(request).map(_ => clock.millis())
+    requestToLatencyHistogramMapper(request).map { _ =>
+      val timestamp = clock.millis()
+      logger.debug(s"Request start time: $timestamp")
+      timestamp
+    }
   }
 
   override def requestSuccessful(request: GenericRequest[_, _], response: Response[_], tag: Option[Long]): Unit = {
     val requestAttributes = createRequestAttributes(request)
     val responseAttributes = createResponseAttributes(response)
+    logger.info(s"Request successful: ${request.uri}, status: ${response.code.code}")
 
     if (response.isSuccess) {
       incrementCounter(responseToSuccessCounterMapper(response), requestAttributes)
@@ -133,6 +141,8 @@ private class OpenTelemetryMetricsListener(
   override def requestException(request: GenericRequest[_, _], tag: Option[Long], e: Exception): Unit = {
     val requestAttributes = createRequestAttributes(request)
     val errorAttributes = createErrorAttributes(e)
+
+    logger.error(s"Request exception: ${request.uri}, error: ${e.getMessage}")
 
     HttpError.find(e) match {
       case Some(HttpError(body, statusCode)) =>
@@ -153,12 +163,16 @@ private class OpenTelemetryMetricsListener(
       size: Option[Long],
       attributes: Attributes
   ): Unit = config.foreach { cfg =>
+    logger.debug(s"Recording histogram for ${cfg.name}, size: $size, attributes: $attributes")
     getOrCreateHistogram(histograms, cfg, createNewHistogram).record(size.getOrElse(0L).toDouble, attributes)
   }
 
   private def incrementCounter(collectorConfig: Option[CollectorConfig], attributes: Attributes): Unit =
     collectorConfig
-      .foreach(config => getOrCreateMetric(counters, config, createNewCounter).add(1, config.attributes))
+      .foreach(config =>
+        logger.debug(s"Incrementing counter for ${config.name}, attributes: $attributes")
+        getOrCreateMetric(counters, config, createNewCounter).add(1, config.attributes)
+      )
 
   private def getOrCreateMetric[T](
       cache: ConcurrentHashMap[String, T],
