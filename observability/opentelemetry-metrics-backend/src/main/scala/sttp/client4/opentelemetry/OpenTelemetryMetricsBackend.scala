@@ -212,13 +212,16 @@ private class OpenTelemetryMetricsListener(
     b.build()
   }
 
-  private def createRequestAttributes(request: GenericRequest[_, _]): Attributes =
+  private def createRequestAttributes(request: GenericRequest[_, _]): Attributes = {
     val attributes = Attributes
       .builder()
       .put(AttributeKey.stringKey("http.request.method"), request.method.method)
       .put(AttributeKey.stringKey("server.address"), request.uri.host.getOrElse("unknown"))
       .put(AttributeKey.longKey("server.port").asInstanceOf[AttributeKey[Any]], request.uri.port.getOrElse(80).toLong)
       .build()
+
+    attributes
+  }
 
   private def createResponseAttributes(response: Response[_]): Attributes =
     Attributes
