@@ -161,16 +161,12 @@ private class OpenTelemetryMetricsListener(
       size: Option[Long],
       attributes: Attributes
   ): Unit = config.foreach { cfg =>
-    println(s"Recording histogram for ${cfg.name}, size: $size, attributes: $attributes")
     getOrCreateHistogram(histograms, cfg, createNewHistogram).record(size.getOrElse(0L).toDouble, attributes)
   }
 
   private def incrementCounter(collectorConfig: Option[CollectorConfig], attributes: Attributes): Unit =
     collectorConfig
-      .foreach(config =>
-        println(s"Incrementing counter for ${config.name}, attributes: $attributes")
-        getOrCreateMetric(counters, config, createNewCounter).add(1, config.attributes)
-      )
+      .foreach(config => getOrCreateMetric(counters, config, createNewCounter).add(1, config.attributes))
 
   private def getOrCreateMetric[T](
       cache: ConcurrentHashMap[String, T],
