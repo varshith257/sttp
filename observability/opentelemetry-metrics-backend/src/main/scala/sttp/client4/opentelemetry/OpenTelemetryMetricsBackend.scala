@@ -109,13 +109,13 @@ private class OpenTelemetryMetricsListener(
 
   override def beforeRequest(request: GenericRequest[_, _]): Option[Long] = {
     val attributes = createRequestAttributes(request)
-    println(s"INFO: Before request: ${request.uri}, method: ${request.method.method}, attributes: $attributes")
+    // println(s"INFO: Before request: ${request.uri}, method: ${request.method.method}, attributes: $attributes")
 
     updateInProgressCounter(request, 1, attributes)
     recordHistogram(requestToSizeHistogramMapper(request), request.contentLength, attributes)
     requestToLatencyHistogramMapper(request).map { _ =>
       val timestamp = clock.millis()
-      println(s"Request start time: $timestamp")
+      // println(s"Request start time: $timestamp")
       timestamp
     }
   }
@@ -123,7 +123,7 @@ private class OpenTelemetryMetricsListener(
   override def requestSuccessful(request: GenericRequest[_, _], response: Response[_], tag: Option[Long]): Unit = {
     val requestAttributes = createRequestAttributes(request)
     val responseAttributes = createResponseAttributes(response)
-    println(s"INFO: Request successful: ${request.uri}, status: ${response.code.code}")
+    // println(s"INFO: Request successful: ${request.uri}, status: ${response.code.code}")
 
     if (response.isSuccess) {
       incrementCounter(responseToSuccessCounterMapper(response), requestAttributes)
@@ -140,7 +140,7 @@ private class OpenTelemetryMetricsListener(
     val requestAttributes = createRequestAttributes(request)
     val errorAttributes = createErrorAttributes(e)
 
-    println(s"ERROR: Request failed: ${request.uri}, error: ${e.getMessage}")
+    // println(s"ERROR: Request failed: ${request.uri}, error: ${e.getMessage}")
 
     HttpError.find(e) match {
       case Some(HttpError(body, statusCode)) =>
