@@ -79,7 +79,8 @@ object OpenTelemetryMetricsConfig {
             HistogramCollectorConfig(
               DefaultLatencyHistogramName,
               buckets = HistogramCollectorConfig.DefaultLatencyBuckets,
-              unit = HistogramCollectorConfig.Milliseconds
+              unit = HistogramCollectorConfig.Milliseconds,
+              description = Some("Expected description")
             )
           ),
       requestToInProgressCounterMapper: GenericRequest[_, _] => Option[CollectorConfig] = (_: GenericRequest[_, _]) =>

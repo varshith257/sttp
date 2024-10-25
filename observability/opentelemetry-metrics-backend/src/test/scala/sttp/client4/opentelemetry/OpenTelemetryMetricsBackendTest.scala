@@ -179,11 +179,16 @@ class OpenTelemetryMetricsBackendTest extends AnyFlatSpec with Matchers with Opt
 
     // then
     val histogram = getHistogramValue(reader, OpenTelemetryMetricsBackend.DefaultLatencyHistogramName).value
-    histogram.getAttributes.forEach { (key, value) =>
-      if (key == AttributeKey.stringKey("http.request.method")) value shouldBe "GET"
-      if (key == AttributeKey.stringKey("server.address")) value shouldBe "127.0.0.1"
-      if (key == AttributeKey.longKey("http.response.status_code")) value shouldBe 200L
-    }
+    // histogram.getAttributes.forEach { (key, value) =>
+    //   if (key == AttributeKey.stringKey("http.request.method")) value shouldBe "GET"
+    //   if (key == AttributeKey.stringKey("server.address")) value shouldBe "127.0.0.1"
+    //   if (key == AttributeKey.longKey("http.response.status_code")) value shouldBe 200L
+    // }
+    val attributes = histogram.getAttributes
+
+    attributes.get(AttributeKey.stringKey("http.request.method")) shouldBe "GET"
+    attributes.get(AttributeKey.stringKey("server.address")) shouldBe "127.0.0.1"
+    attributes.get(AttributeKey.longKey("http.response.status_code")) shouldBe 200L
   }
 
   it should "use error counter when http error is thrown" in {
