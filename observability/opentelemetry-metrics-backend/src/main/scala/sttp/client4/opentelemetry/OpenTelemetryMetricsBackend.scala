@@ -1,7 +1,7 @@
 package sttp.client4.opentelemetry
 
 import io.opentelemetry.api.OpenTelemetry
-import io.opentelemetry.api.common.Attributes
+import io.opentelemetry.api.common.{AttributeKey, Attributes}
 import io.opentelemetry.api.metrics.{DoubleHistogram, LongCounter, LongUpDownCounter, Meter}
 import sttp.client4.listener.{ListenerBackend, RequestListener}
 import sttp.client4.wrappers.FollowRedirectsBackend
