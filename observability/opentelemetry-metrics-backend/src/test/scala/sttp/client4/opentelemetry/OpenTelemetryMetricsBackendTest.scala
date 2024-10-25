@@ -180,11 +180,7 @@ class OpenTelemetryMetricsBackendTest extends AnyFlatSpec with Matchers with Opt
     // then
     val histogram = getHistogramValue(reader, OpenTelemetryMetricsBackend.DefaultLatencyHistogramName).value
     val attributes = histogram.getAttributes
-
-    attributes.asMap().forEach((key, value) => println(s"$key -> $value"))
-
-    println(s"Request method[TEST]: ${attributes.get(AttributeKey.stringKey("http.request.method"))}")
-    attributes.asMap().get(AttributeKey.stringKey("http.request.method")) shouldBe "GET"
+    attributes.get(AttributeKey.stringKey("http.request.method")) shouldBe "GET"
     attributes.get(AttributeKey.stringKey("server.address")) shouldBe "127.0.0.1"
     attributes.get(AttributeKey.longKey("http.response.status_code")) shouldBe 200L
   }

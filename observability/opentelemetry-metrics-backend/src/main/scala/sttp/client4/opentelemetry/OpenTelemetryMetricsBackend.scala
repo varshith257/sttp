@@ -109,13 +109,11 @@ private class OpenTelemetryMetricsListener(
 
   override def beforeRequest(request: GenericRequest[_, _]): Option[Long] = {
     val attributes = createRequestAttributes(request)
-    // println(s"INFO: Before request: ${request.uri}, method: ${request.method.method}, attributes: $attributes")
 
     updateInProgressCounter(request, 1, attributes)
     recordHistogram(requestToSizeHistogramMapper(request), request.contentLength, attributes)
     requestToLatencyHistogramMapper(request).map { _ =>
       val timestamp = clock.millis()
-      // println(s"Request start time: $timestamp")
       timestamp
     }
   }
@@ -123,7 +121,6 @@ private class OpenTelemetryMetricsListener(
   override def requestSuccessful(request: GenericRequest[_, _], response: Response[_], tag: Option[Long]): Unit = {
     val requestAttributes = createRequestAttributes(request)
     val responseAttributes = createResponseAttributes(response)
-    // println(s"INFO: Request successful: ${request.uri}, status: ${response.code.code}")
 
     val combinedAttributes = requestAttributes.toBuilder().putAll(responseAttributes).build()
 
@@ -215,18 +212,13 @@ private class OpenTelemetryMetricsListener(
     b.build()
   }
 
-  private def createRequestAttributes(request: GenericRequest[_, _]): Attributes = {
+  private def createRequestAttributes(request: GenericRequest[_, _]): Attributes =
     val attributes = Attributes
       .builder()
       .put(AttributeKey.stringKey("http.request.method"), request.method.method)
       .put(AttributeKey.stringKey("server.address"), request.uri.host.getOrElse("unknown"))
       .put(AttributeKey.longKey("server.port").asInstanceOf[AttributeKey[Any]], request.uri.port.getOrElse(80).toLong)
       .build()
-
-    println(s"Request Attributes: ${attributes.asMap()}") // Add this for debugging
-    attributes
-
-  }
 
   private def createResponseAttributes(response: Response[_]): Attributes =
     Attributes
