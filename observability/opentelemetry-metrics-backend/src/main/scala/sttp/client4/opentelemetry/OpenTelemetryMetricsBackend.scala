@@ -161,7 +161,7 @@ private class OpenTelemetryMetricsListener(
     getOrCreateHistogram(histograms, cfg, createNewHistogram).record(size.getOrElse(0L).toDouble, attributes)
   }
 
-  private def incrementCounter(collectorConfig: Option[CollectorConfig]): Unit =
+  private def incrementCounter(collectorConfig: Option[CollectorConfig], attributes: Attributes): Unit =
     collectorConfig
       .foreach(config => getOrCreateMetric(counters, config, createNewCounter).add(1, config.attributes))
 
