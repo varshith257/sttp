@@ -161,7 +161,7 @@ private class OpenTelemetryMetricsListener(
     getOrCreateHistogram(histograms, cfg, createNewHistogram).record(size.getOrElse(0L).toDouble, attributes)
   }
 
-  private def incrementCounter(collectorConfig: Option[CollectorConfig], attributes: Attributes): Unit =
+  private def incrementCounter(collectorConfig: Option[CollectorConfig]): Unit =
     collectorConfig
       .foreach(config => getOrCreateMetric(counters, config, createNewCounter).add(1, config.attributes))
 
@@ -212,6 +212,10 @@ private class OpenTelemetryMetricsListener(
     b.build()
   }
 
+  /*
+    OpenTelemetry HTTP Client Metrics Spec: Mapping request attributes as per
+    https://opentelemetry.io/docs/specs/semconv/http/http-metrics/#http-client
+   * */
   private def createRequestAttributes(request: GenericRequest[_, _]): Attributes = {
     val attributes = Attributes
       .builder()
@@ -223,6 +227,10 @@ private class OpenTelemetryMetricsListener(
     attributes
   }
 
+  /*
+    OpenTelemetry HTTP Client Metrics Spec: Mapping response attributes as per
+    https://opentelemetry.io/docs/specs/semconv/http/http-metrics/#http-client
+   * */
   private def createResponseAttributes(response: Response[_]): Attributes =
     Attributes
       .builder()
